@@ -1,8 +1,7 @@
 #include <iostream>
-#include <vector>
+#include <list>
 #include <random>
 #include <ctime>
-#include <list>
 #include <algorithm>
 
 using namespace std;
@@ -61,7 +60,7 @@ public:
     
 
     void information() {
-        vector<string> mounths = {
+        list<string> mounths = {
         " Январь", " Февраль", " Март", " Апрель", " Май", " Июнь", " Июль", " Август", " Сентябрь", " Октябрь", " Ноябрь", " Декабрь"
         };
         cout << " =============== Информация об объекте ============== " << endl;
@@ -73,23 +72,24 @@ public:
         cout << " =====================================================" << endl;
     }
 };
+
 bool compareByFinish(file& a, file& b) {
     return a.getFinish() < b.getFinish();
 }
 
-void printInfo (vector<file> obj, string title) {
+void printInfo (list<file> objects, string title) {
     cout << title << endl;
-    if (obj.empty()) {
+    if (objects.empty()) {
         cout << "Спискок пуст" << endl;
         return;
     }
-    for (int i = 0; i < (int)obj.size(); i++) {
-        obj[i].information();
+    for (file obj : objects) {
+        obj.information();
     }
 }
 
-void newWrite (vector<file> &obj, int N, int aut) {
-    vector<string> addresses = {
+void newWrite (list<file> &obj, int N, int aut) {
+    list<string> addresses = {
         "ул. Ленина, д. 15", "пр. Мира, д. 28", "ул. Советская, д. 7", 
         "ул. Пушкина, д. 42", "пр. Гагарина, д. 13", "ул. Садовая, д. 21",
         "ул. Центральная, д. 5", "пр. Ленинградский, д. 34", "ул. Школьная, д. 18",
@@ -103,34 +103,37 @@ void newWrite (vector<file> &obj, int N, int aut) {
         int rooms, area, start, finish;
         string address;
 
-        // cout << "===============================================================================================================" << endl;
         if (aut == 'y' || aut == 'Y') {
             rooms = rand() % 5 + 1;
             area = rooms * 6 + rand() % 10;
-            address = addresses[rand() % addresses.size()];
+            auto addresses_list = addresses;
+            auto it = addresses_list.begin();
+            advance(it, rand() % addresses_list.size());
+            address = *it;
             start = rand() % 15 + 1;
             finish = start + rand() % 12;
 
             obj.push_back(file(rooms, area, address, start, finish));
         }
         else {
-        cout << "введите количество комнат -> ";
-        cin >> rooms;
-        cout << "Введите площадь помещения -> ";
-        cin >> area;
-        cout << "Введите адрес здания -> ";
-        cin >> address;
-        cout << "Введите дату подачи заявления -> ";
-        cin >> start;
-        cout << "Введите предполагаемую дату окончания заявки -> ";
-        cin >> finish;
+            cout << "введите количество комнат -> ";
+            cin >> rooms;
+            cout << "Введите площадь помещения -> ";
+            cin >> area;
+            cout << "Введите адрес здания -> ";
+            cin.ignore();
+            getline(cin, address);
+            cout << "Введите дату подачи заявления -> ";
+            cin >> start;
+            cout << "Введите предполагаемую дату окончания заявки -> ";
+            cin >> finish;
 
-        obj.push_back(file(rooms, area, address, start, finish));
+            obj.push_back(file(rooms, area, address, start, finish));
         }
     }
 }
 
-void transferToClosed(vector<file>& Office, vector<file>& Closed) {
+void transferToClosed(list<file>& Office, list<file>& Closed) {
     auto it = Office.begin();
     while (it != Office.end()) {
         if (it->getFinish() > 15) {
@@ -141,13 +144,13 @@ void transferToClosed(vector<file>& Office, vector<file>& Closed) {
         }
     }
     
-    sort(Office.begin(), Office.end(), compareByFinish);
-    sort(Closed.begin(), Closed.end(), compareByFinish);
+    Office.sort(compareByFinish);
+    Closed.sort(compareByFinish);
 }
 
-void transferSelect(vector<file>& Office, vector<file>& Closed) {
+void transferSelect(list<file>& Office, list<file>& Closed) {
     if (Office.empty()) {
-        cout << "Список пуст, несего переносить " << endl;
+        cout << "Список пуст, нечего переносить " << endl;
         return;
     }
     
@@ -155,55 +158,60 @@ void transferSelect(vector<file>& Office, vector<file>& Closed) {
     int selected;
     cin >> selected;
 
-    int index = selected - 1;
+    if (selected < 1 || selected > Office.size()) {
+        cout << "Неверный номер записи!" << endl;
+        return;
+    }
+    
+    auto it = Office.begin();
+    advance(it, selected - 1);
     
     cout << "Вы выбрали запись:" << endl;
-    Office[index].information();
+    it->information();
     cout << "\x1b[1;31mОбъект закрыт \x1b[0m" << endl;
     
-        Closed.push_back(Office[index]);
-        Office.erase(Office.begin() + index);
-        
-        sort(Office.begin(), Office.end(), compareByFinish);
-        sort(Closed.begin(), Closed.end(), compareByFinish);
-    } 
-
+    Closed.push_back(*it);
+    Office.erase(it);
+    
+    Office.sort(compareByFinish);
+    Closed.sort(compareByFinish);
+} 
 
 int main() {
     srand(time(NULL));
-    vector<file> Office;
-    vector<file> Closed;
+    list<file> Office;
+    list<file> Closed;
 
     char autolist = 'y';
     char add = 'y';
     cout << "Вы хотите внести автоматически записи? (y/n) ";
     cin >> autolist;
     do {
-    cout <<  "Сколько новых записей вы хотите снести? ";
-    int cnt;
-    cin >> cnt;
+        cout <<  "Сколько новых записей вы хотите внести? ";
+        int cnt;
+        cin >> cnt;
         newWrite (Office, cnt, autolist);
         cout << "Вы хотите внести ещё записей? (y/n)" << endl;
-            cin >> add;
-            if (add == 'y' || add == 'Y') {
-        cout << "Вы хотите внести автоматически записи? (y/n) ";
+        cin >> add;
+        if (add == 'y' || add == 'Y') {
+            cout << "Вы хотите внести автоматически записи? (y/n) ";
             cin >> autolist;
-            }
+        }
     } while (add == 'y' || add == 'Y');
 
-sort(Office.begin(), Office.end(), compareByFinish);
+    Office.sort(compareByFinish);
 
-printInfo (Office, "====================== Начальный список записей =======================");
+    printInfo (Office, "====================== Начальный список записей =======================");
 
-char del = 'y';
-while (del == 'y' || del == 'Y') {
-    transferSelect(Office, Closed);
-    cout << "Вы хотите Перенести ещё запись? (y/n)" << endl;
-            cin >> del;
-}
+    char del = 'y';
+    while (del == 'y' || del == 'Y') {
+        transferSelect(Office, Closed);
+        cout << "Вы хотите перенести ещё запись? (y/n)" << endl;
+        cin >> del;
+    }
 
+    printInfo (Office, "\x1b[1;33m====================== Список оставшихся объектов =======================\x1b[0m\n");
+    printInfo (Closed, "\x1b[1;33m====================== Список завёршенных объектов =======================\x1b[0m\n");
 
-printInfo (Office, "\x1b[1;33m====================== Список оставшихся объектов =======================\x1b[0m\n");
-printInfo (Closed, "\x1b[1;33m====================== Список завёршенных объектов =======================\x1b[0m\n");
-
+    return 0;
 }
